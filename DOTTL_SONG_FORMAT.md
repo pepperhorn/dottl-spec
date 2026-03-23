@@ -36,7 +36,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
 | `bpm`           | number   | Yes      | Tempo in beats per minute. Range: `20–300`. |
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
-| `difficulty`    | `easy \| intermediate \| advanced` | Yes | Difficulty rating for the song. |
+| `difficulty`    | `easy \| intermediate \| advanced \| null` | Yes | Difficulty rating for the song. `null` = unrated. |
 | `layers`        | Layer[]  | Yes      | One or more instrument layers. Must contain at least one layer. |
 
 ---
@@ -238,7 +238,7 @@ A valid `.dottl` file must satisfy:
 2. `bpm` must be a number in `[20, 300]`
 3. `divisor` must be one of `1, 2, 3, 4`
 4. `transposition` must be an integer in `[-12, 12]`
-5. `difficulty` must be one of `easy`, `intermediate`, `advanced`
+5. `difficulty` must be one of `easy`, `intermediate`, `advanced`, or `null`
 6. `layers` must be a non-empty array
 7. All `id` fields must be unique within their scope (notes within a layer, lines within a layer, layers within the song)
 8. `fromNoteId` in a SustainLine must reference a valid note `id` in the same layer
