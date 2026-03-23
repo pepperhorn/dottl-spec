@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "projectName": "Twinkle Twinkle Little Star",
+  "bpm": 100,
+  "divisor": 2,
+  "transposition": 0,
+  "layers": [
+    {
+      "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "name": "Piano",
+      "color": "#88a7f8",
+      "instrumentType": "keys",
+      "instrumentName": "Splendid Grand Piano",
+      "volume": 75,
+      "reverb": 25,
+      "notes": [
+        { "id": "n01", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 1 },
+        { "id": "n02", "name": "C", "col": 2, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 1 },
+        { "id": "n03", "name": "G", "col": 4, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n04", "name": "G", "col": 6, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n05", "name": "A", "col": 8, "row": 9, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n06", "name": "A", "col": 10, "row": 9, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n07", "name": "G", "col": 12, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 3 },
+        { "id": "n08", "name": "F", "col": 16, "row": 5, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n09", "name": "F", "col": 18, "row": 5, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n10", "name": "E", "col": 20, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n11", "name": "E", "col": 22, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n12", "name": "D", "col": 24, "row": 2, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n13", "name": "D", "col": 26, "row": 2, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "n14", "name": "C", "col": 28, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 3 }
+      ],
+      "lines": [
+        { "id": "l1", "fromNoteId": "n05", "toNoteId": "n07", "cells": 4, "style": "solid" }
+      ]
+    }
+  ]
+}

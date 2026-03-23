@@ -1,0 +1,68 @@
+{
+  "version": 3,
+  "projectName": "Multi Layer Beat",
+  "bpm": 90,
+  "divisor": 4,
+  "transposition": 0,
+  "layers": [
+    {
+      "id": "a1b2c3d4-drum-layer",
+      "name": "Drums",
+      "color": "#e57373",
+      "instrumentType": "drum-machine",
+      "instrumentName": "TR-808",
+      "volume": 80,
+      "reverb": 10,
+      "notes": [
+        { "id": "d01", "name": "C", "col": 0, "row": 0, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d02", "name": "C", "col": 4, "row": 0, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d03", "name": "C", "col": 8, "row": 0, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d04", "name": "C", "col": 12, "row": 0, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d05", "name": "D", "col": 4, "row": 2, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d06", "name": "D", "col": 12, "row": 2, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d07", "name": "F#/Gb", "col": 0, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d08", "name": "F#/Gb", "col": 2, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d09", "name": "F#/Gb", "col": 4, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d10", "name": "F#/Gb", "col": 6, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d11", "name": "F#/Gb", "col": 8, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d12", "name": "F#/Gb", "col": 10, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d13", "name": "F#/Gb", "col": 12, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 },
+        { "id": "d14", "name": "F#/Gb", "col": 14, "row": 6, "octave": 2, "isRoot": false, "sustainCells": 0 }
+      ],
+      "lines": []
+    },
+    {
+      "id": "e5f6g7h8-bass-layer",
+      "name": "Bass",
+      "color": "#81c784",
+      "instrumentType": "smolken",
+      "instrumentName": "Deep Sub Bass",
+      "volume": 70,
+      "reverb": 15,
+      "notes": [
+        { "id": "b01", "name": "E", "col": 0, "row": 4, "octave": 2, "isRoot": true, "sustainCells": 3 },
+        { "id": "b02", "name": "E", "col": 8, "row": 4, "octave": 2, "isRoot": true, "sustainCells": 1 },
+        { "id": "b03", "name": "G", "col": 12, "row": 7, "octave": 2, "isRoot": false, "sustainCells": 3 }
+      ],
+      "lines": []
+    },
+    {
+      "id": "i9j0k1l2-keys-layer",
+      "name": "Keys",
+      "color": "#88a7f8",
+      "instrumentType": "keys",
+      "instrumentName": "Splendid Grand Piano",
+      "volume": 55,
+      "reverb": 35,
+      "notes": [
+        { "id": "k01", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k02", "name": "G", "col": 0, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k03", "name": "B", "col": 0, "row": 11, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k04", "name": "E", "col": 8, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k05", "name": "G", "col": 8, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k06", "name": "B", "col": 8, "row": 11, "octave": 4, "isRoot": false, "sustainCells": 1 }
+      ],
+      "lines": []
+    }
+  ]
+}

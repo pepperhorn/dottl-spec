@@ -1,0 +1,24 @@
+{
+  "version": 3,
+  "projectName": "C Major Chord",
+  "bpm": 120,
+  "divisor": 2,
+  "transposition": 0,
+  "layers": [
+    {
+      "id": "layer-1",
+      "name": "Piano",
+      "color": "",
+      "instrumentType": "keys",
+      "instrumentName": "Splendid Grand Piano",
+      "volume": 70,
+      "reverb": 20,
+      "notes": [
+        { "id": "n1", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 0 },
+        { "id": "n2", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 0 },
+        { "id": "n3", "name": "G", "col": 0, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 0 }
+      ],
+      "lines": []
+    }
+  ]
+}
