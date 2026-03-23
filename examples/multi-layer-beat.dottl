@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "projectName": "Multi Layer Beat",
   "bpm": 90,
   "divisor": 4,
@@ -10,8 +10,9 @@
       "id": "a1b2c3d4-drum-layer",
       "name": "Drums",
       "color": "#e57373",
-      "instrumentType": "drum-machine",
-      "instrumentName": "TR-808",
+      "instrumentCategory": "Drums",
+      "smplrLibrary": "DrumMachine",
+      "smplrPatch": "TR-808",
       "volume": 80,
       "reverb": 10,
       "notes": [
@@ -36,8 +37,9 @@
       "id": "e5f6g7h8-bass-layer",
       "name": "Bass",
       "color": "#81c784",
-      "instrumentType": "smolken",
-      "instrumentName": "Deep Sub Bass",
+      "instrumentCategory": "Bass",
+      "smplrLibrary": "Smolken",
+      "smplrPatch": "Deep Sub Bass",
       "volume": 70,
       "reverb": 15,
       "notes": [
@@ -51,8 +53,9 @@
       "id": "i9j0k1l2-keys-layer",
       "name": "Keys",
       "color": "#88a7f8",
-      "instrumentType": "keys",
-      "instrumentName": "Splendid Grand Piano",
+      "instrumentCategory": "Piano",
+      "smplrLibrary": "SplendidGrandPiano",
+      "smplrPatch": "Splendid Grand Piano",
       "volume": 55,
       "reverb": 35,
       "notes": [

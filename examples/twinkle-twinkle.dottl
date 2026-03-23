@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "projectName": "Twinkle Twinkle Little Star",
   "bpm": 100,
   "divisor": 2,
@@ -10,8 +10,9 @@
       "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
       "name": "Piano",
       "color": "#88a7f8",
-      "instrumentType": "keys",
-      "instrumentName": "Splendid Grand Piano",
+      "instrumentCategory": "Piano",
+      "smplrLibrary": "SplendidGrandPiano",
+      "smplrPatch": "Splendid Grand Piano",
       "volume": 75,
       "reverb": 25,
       "notes": [
