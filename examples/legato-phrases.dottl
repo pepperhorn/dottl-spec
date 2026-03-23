@@ -4,6 +4,7 @@
   "bpm": 80,
   "divisor": 2,
   "transposition": 0,
+  "difficulty": "advanced",
   "layers": [
     {
       "id": "c3d4e5f6-melody-layer",

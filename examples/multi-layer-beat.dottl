@@ -4,6 +4,7 @@
   "bpm": 90,
   "divisor": 4,
   "transposition": 0,
+  "difficulty": "intermediate",
   "layers": [
     {
       "id": "a1b2c3d4-drum-layer",

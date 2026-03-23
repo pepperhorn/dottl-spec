@@ -4,6 +4,7 @@
   "bpm": 100,
   "divisor": 2,
   "transposition": 0,
+  "difficulty": "easy",
   "layers": [
     {
       "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",

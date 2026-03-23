@@ -24,6 +24,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
   "bpm": 120,
   "divisor": 2,
   "transposition": 0,
+  "difficulty": "intermediate",
   "layers": [...]
 }
 ```
@@ -35,6 +36,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
 | `bpm`           | number   | Yes      | Tempo in beats per minute. Range: `20–300`. |
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
+| `difficulty`    | `easy \| intermediate \| advanced` | Yes | Difficulty rating for the song. |
 | `layers`        | Layer[]  | Yes      | One or more instrument layers. Must contain at least one layer. |
 
 ---
@@ -236,13 +238,14 @@ A valid `.dottl` file must satisfy:
 2. `bpm` must be a number in `[20, 300]`
 3. `divisor` must be one of `1, 2, 3, 4`
 4. `transposition` must be an integer in `[-12, 12]`
-5. `layers` must be a non-empty array
-6. All `id` fields must be unique within their scope (notes within a layer, lines within a layer, layers within the song)
-7. `fromNoteId` in a SustainLine must reference a valid note `id` in the same layer
-8. `toNoteId` must reference a valid note `id` in the same layer, or be `null`
-9. `name` must be one of the 12 valid NoteName values
-10. `octave` must be an integer in `[0, 8]`
-11. `volume` and `reverb` must be numbers in `[0, 100]`
+5. `difficulty` must be one of `easy`, `intermediate`, `advanced`
+6. `layers` must be a non-empty array
+7. All `id` fields must be unique within their scope (notes within a layer, lines within a layer, layers within the song)
+8. `fromNoteId` in a SustainLine must reference a valid note `id` in the same layer
+9. `toNoteId` must reference a valid note `id` in the same layer, or be `null`
+10. `name` must be one of the 12 valid NoteName values
+11. `octave` must be an integer in `[0, 8]`
+12. `volume` and `reverb` must be numbers in `[0, 100]`
 
 ---
 
@@ -257,6 +260,7 @@ A single C major chord (C4, E4, G4) at 120 BPM:
   "bpm": 120,
   "divisor": 2,
   "transposition": 0,
+  "difficulty": "easy",
   "layers": [
     {
       "id": "layer-1",
