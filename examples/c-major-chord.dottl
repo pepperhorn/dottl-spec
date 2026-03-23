@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "projectName": "C Major Chord",
   "bpm": 120,
   "divisor": 2,
@@ -10,8 +10,9 @@
       "id": "layer-1",
       "name": "Piano",
       "color": "",
-      "instrumentType": "keys",
-      "instrumentName": "Splendid Grand Piano",
+      "instrumentCategory": "Piano",
+      "smplrLibrary": "SplendidGrandPiano",
+      "smplrPatch": "Splendid Grand Piano",
       "volume": 70,
       "reverb": 20,
       "notes": [

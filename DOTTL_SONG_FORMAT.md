@@ -1,6 +1,6 @@
 # Dottl Song Format Specification
 
-**Version:** 1.0 (based on internal schema v3)
+**Version:** 2.0 (based on internal schema v4)
 **File extension:** `.dottl`
 **MIME type:** `application/json` (JSON with `.dottl` extension)
 **Encoding:** UTF-8
@@ -19,7 +19,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "projectName": "My Song",
   "bpm": 120,
   "divisor": 2,
@@ -31,7 +31,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
 
 | Field           | Type     | Required | Description |
 |-----------------|----------|----------|-------------|
-| `version`       | `3`      | Yes      | Schema version. Always `3` for this spec. |
+| `version`       | `4`      | Yes      | Schema version. Always `4` for this spec. |
 | `projectName`   | string   | Yes      | Human-readable song name. May be empty. |
 | `bpm`           | number   | Yes      | Tempo in beats per minute. Range: `20–300`. |
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
@@ -72,8 +72,9 @@ Each layer represents an independent instrument track.
   "id": "a1b2c3d4",
   "name": "Piano",
   "color": "#88a7f8",
-  "instrumentType": "keys",
-  "instrumentName": "Splendid Grand Piano",
+  "instrumentCategory": "Piano",
+  "smplrLibrary": "SplendidGrandPiano",
+  "smplrPatch": "Splendid Grand Piano",
   "volume": 70,
   "reverb": 20,
   "notes": [...],
@@ -81,34 +82,47 @@ Each layer represents an independent instrument track.
 }
 ```
 
-| Field            | Type           | Required | Description |
-|------------------|----------------|----------|-------------|
-| `id`             | string         | Yes      | Unique identifier (UUID recommended). |
-| `name`           | string         | Yes      | Display name for the layer. |
-| `color`          | string         | Yes      | CSS color string for visual tinting. Empty string = default/no tint. |
-| `instrumentType` | InstrumentType | Yes      | Instrument category. See [Instrument Types](#instrument-types). |
-| `instrumentName` | string         | Yes      | Specific instrument within the category. |
-| `volume`         | number         | Yes      | Playback volume. Range: `0–100`. |
-| `reverb`         | number         | Yes      | Reverb effect amount. Range: `0–100`. |
-| `notes`          | Note[]         | Yes      | Array of placed notes. May be empty. |
-| `lines`          | SustainLine[]  | Yes      | Array of sustain/legato connections. May be empty. |
+| Field                | Type               | Required | Description |
+|----------------------|--------------------|----------|-------------|
+| `id`                 | string             | Yes      | Unique identifier (UUID recommended). |
+| `name`               | string             | Yes      | Display name for the layer. |
+| `color`              | string             | Yes      | CSS color string for visual tinting. Empty string = default/no tint. |
+| `instrumentCategory` | InstrumentCategory | Yes      | General instrument category. See [Instrument Categories](#instrument-categories). |
+| `smplrLibrary`       | SmplrLibrary       | No       | The [smplr](https://github.com/danigb/smplr) constructor/library used. See [smplr Fields](#smplr-fields). |
+| `smplrPatch`         | string             | Yes      | Specific instrument patch name. For smplr-based apps, this is the smplr instrument name. For other apps, treat as a hint. |
+| `volume`             | number             | Yes      | Playback volume. Range: `0–100`. |
+| `reverb`             | number             | Yes      | Reverb effect amount. Range: `0–100`. |
+| `notes`              | Note[]             | Yes      | Array of placed notes. May be empty. |
+| `lines`              | SustainLine[]      | Yes      | Array of sustain/legato connections. May be empty. |
 
-### Instrument Types
+### Instrument Categories
 
-Canonical instrument types:
+Human-readable categories that describe the general type of instrument. Apps should use these to select an appropriate sound from whatever audio library they use.
 
-| `instrumentType` | Description |
-|-------------------|-------------|
-| `keys`            | Piano/keyboard instruments |
-| `mallet`          | Vibraphone, marimba, etc. |
-| `mellotron`       | Mellotron tape-replay instruments |
-| `smolken`         | Bass instruments |
-| `drum-machine`    | Drum machines (TR-808, etc.) |
-| `soundfont`       | General MIDI soundfonts |
+| `instrumentCategory` | Description |
+|----------------------|-------------|
+| `Piano`              | Piano and keyboard instruments (acoustic piano, electric piano, organ, etc.) |
+| `Mallet`             | Pitched percussion — vibraphone, marimba, glockenspiel, etc. |
+| `Strings`            | Bowed/plucked string instruments and string ensembles |
+| `Bass`               | Bass instruments (electric bass, upright bass, synth bass, etc.) |
+| `Drums`              | Drum machines and percussion kits |
+| `Soundfont`          | General MIDI soundfonts — catch-all for instruments not covered above |
 
-**Implementation note:** Apps that don't support a given instrument type should fall back gracefully — play the notes with any available instrument rather than failing.
+**Implementation note:** Apps that don't support a given category should fall back gracefully — play the notes with any available instrument rather than failing.
 
-**Legacy types:** Files may contain `splendid-grand-piano` or `electric-piano` as instrument types. These should be normalized to `keys` on load.
+### smplr Fields
+
+The `smplrLibrary` and `smplrPatch` fields provide specific sound-reproduction hints for apps that use the [smplr](https://github.com/danigb/smplr) audio library. Apps that don't use smplr should ignore `smplrLibrary` and use `instrumentCategory` to pick an appropriate sound. `smplrPatch` can still serve as a human-readable hint for the specific sound (e.g., "CP80" tells you it's a Yamaha CP80 electric piano).
+
+| `smplrLibrary`       | smplr Constructor    | Typical Category |
+|----------------------|---------------------|------------------|
+| `SplendidGrandPiano` | `SplendidGrandPiano` | Piano           |
+| `ElectricPiano`      | `ElectricPiano`      | Piano           |
+| `Mallet`             | `Mallet`             | Mallet          |
+| `Mellotron`          | `Mellotron`          | Strings         |
+| `Smolken`            | `Smolken`            | Bass            |
+| `DrumMachine`        | `DrumMachine`        | Drums           |
+| `Soundfont`          | `Soundfont`          | Soundfont       |
 
 ---
 
@@ -203,13 +217,43 @@ Connects notes for sustain or legato phrasing.
 
 ## Versioning & Migration
 
-### Current Version: 3
+### Current Version: 4
 
-This spec describes version 3. Apps should write version 3 files exclusively.
+This spec describes version 4. Apps should write version 4 files exclusively.
+
+### Changes in v4 (from v3)
+
+- **Renamed `instrumentType` → `instrumentCategory`** with new human-readable values (`Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`) replacing internal identifiers (`keys`, `mallet`, `mellotron`, `smolken`, `drum-machine`, `soundfont`)
+- **Renamed `instrumentName` → `smplrPatch`** to clarify that this is a smplr-specific patch name
+- **Added optional `smplrLibrary` field** to specify the exact smplr constructor for faithful sound reproduction
 
 ### Reading Older Versions
 
 Apps should support migrating older formats on load:
+
+**v3 → v4:**
+- Map `instrumentType` to `instrumentCategory`:
+
+  | v3 `instrumentType` | v4 `instrumentCategory` |
+  |---|---|
+  | `keys` | `Piano` |
+  | `splendid-grand-piano` | `Piano` |
+  | `electric-piano` | `Piano` |
+  | `mallet` | `Mallet` |
+  | `mellotron` | `Strings` |
+  | `smolken` | `Bass` |
+  | `drum-machine` | `Drums` |
+  | `soundfont` | `Soundfont` |
+
+- Rename `instrumentName` to `smplrPatch`
+- Derive `smplrLibrary` from v3 fields:
+  - `keys` + `"Splendid Grand Piano"` → `SplendidGrandPiano`
+  - `keys` + any other name → `ElectricPiano`
+  - `mallet` → `Mallet`
+  - `mellotron` → `Mellotron`
+  - `smolken` → `Smolken`
+  - `drum-machine` → `DrumMachine`
+  - `soundfont` → `Soundfont`
 
 **v2 → v3:**
 - Wrap all notes and lines into a single default layer
@@ -220,6 +264,8 @@ Apps should support migrating older formats on load:
 - v1 notes had `connectedToId` instead of a separate `lines` array
 - Convert each note with `connectedToId` + `sustainCells > 0` into a SustainLine
 - Then apply v2 → v3 migration
+
+Then apply v3 → v4 migration.
 
 ### Future Versions
 
@@ -234,7 +280,7 @@ The `version` field allows forward evolution. Apps encountering an unknown versi
 
 A valid `.dottl` file must satisfy:
 
-1. `version` must be `3` (or a recognized legacy version)
+1. `version` must be `4` (or a recognized legacy version)
 2. `bpm` must be a number in `[20, 300]`
 3. `divisor` must be one of `1, 2, 3, 4`
 4. `transposition` must be an integer in `[-12, 12]`
@@ -246,6 +292,8 @@ A valid `.dottl` file must satisfy:
 10. `name` must be one of the 12 valid NoteName values
 11. `octave` must be an integer in `[0, 8]`
 12. `volume` and `reverb` must be numbers in `[0, 100]`
+13. `instrumentCategory` must be one of: `Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`
+14. `smplrLibrary`, if present, must be one of: `SplendidGrandPiano`, `ElectricPiano`, `Mallet`, `Mellotron`, `Smolken`, `DrumMachine`, `Soundfont`
 
 ---
 
@@ -255,7 +303,7 @@ A single C major chord (C4, E4, G4) at 120 BPM:
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "projectName": "C Major Chord",
   "bpm": 120,
   "divisor": 2,
@@ -266,8 +314,9 @@ A single C major chord (C4, E4, G4) at 120 BPM:
       "id": "layer-1",
       "name": "Piano",
       "color": "",
-      "instrumentType": "keys",
-      "instrumentName": "Splendid Grand Piano",
+      "instrumentCategory": "Piano",
+      "smplrLibrary": "SplendidGrandPiano",
+      "smplrPatch": "Splendid Grand Piano",
       "volume": 70,
       "reverb": 20,
       "notes": [
@@ -288,14 +337,16 @@ A single C major chord (C4, E4, G4) at 120 BPM:
 ### For Consumers (readers)
 
 - Be lenient: ignore unknown top-level or nested fields
-- Normalize legacy instrument types (`splendid-grand-piano` → `keys`, `electric-piano` → `keys`)
-- Support loading all schema versions (v1, v2, v3) via migration
-- If `instrumentName` is not recognized, use a sensible default for the `instrumentType`
+- Support loading all schema versions (v1, v2, v3, v4) via migration
+- If `smplrPatch` is not recognized, use a sensible default for the `instrumentCategory`
+- If `smplrLibrary` is missing, use `instrumentCategory` to pick an appropriate sound
+- Legacy v3 files will have `instrumentType`/`instrumentName` — migrate to `instrumentCategory`/`smplrPatch`
 
 ### For Producers (writers)
 
-- Always write `version: 3`
+- Always write `version: 4`
 - Always include all required fields — do not omit fields with default values
+- Include `smplrLibrary` when the sound was produced with smplr (recommended but optional)
 - Use stable UUIDs for `id` fields (avoid sequential integers that could collide across apps)
 - Sanitize `projectName` for use as a filename: lowercase, replace non-alphanumeric with hyphens, strip leading/trailing hyphens, fall back to `"untitled"`
 
@@ -324,7 +375,7 @@ Apps may store additional data in a top-level `extensions` object. Other apps sh
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "extensions": {
     "com.example.myapp": { ... }
   },
