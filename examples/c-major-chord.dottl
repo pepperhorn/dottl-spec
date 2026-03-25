@@ -1,22 +1,25 @@
 {
-  "version": 4,
+  "version": 5,
   "projectName": "C Major Chord",
   "bpm": 120,
   "divisor": 2,
   "transposition": 0,
   "difficulty": "easy",
+  "chords": [
+    { "col": 0, "name": "C" }
+  ],
   "layers": [
     {
       "id": "layer-1",
       "name": "Piano",
       "color": "",
-      "instrumentCategory": "Piano",
+      "instrumentCategory": "Keys",
       "smplrLibrary": "SplendidGrandPiano",
       "smplrPatch": "Splendid Grand Piano",
       "volume": 70,
       "reverb": 20,
       "notes": [
-        { "id": "n1", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 0 },
+        { "id": "n1", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "isStartNote": true, "sustainCells": 0 },
         { "id": "n2", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 0 },
         { "id": "n3", "name": "G", "col": 0, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 0 }
       ],

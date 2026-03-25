@@ -1,27 +1,31 @@
 {
-  "version": 4,
+  "version": 5,
   "projectName": "Legato Phrases",
   "bpm": 80,
   "divisor": 2,
   "transposition": 0,
   "difficulty": "advanced",
+  "chords": [
+    { "col": 0, "name": "D" },
+    { "col": 10, "name": "A" }
+  ],
   "layers": [
     {
       "id": "c3d4e5f6-melody-layer",
       "name": "Vibraphone",
       "color": "#ce93d8",
-      "instrumentCategory": "Mallet",
+      "instrumentCategory": "Other",
       "smplrLibrary": "Mallet",
       "smplrPatch": "Vibraphone",
       "volume": 65,
       "reverb": 40,
       "notes": [
-        { "id": "n01", "name": "D", "col": 0, "row": 2, "octave": 5, "isRoot": false, "sustainCells": 1 },
+        { "id": "n01", "name": "D", "col": 0, "row": 2, "octave": 5, "isRoot": true, "isStartNote": true, "sustainCells": 1 },
         { "id": "n02", "name": "F#/Gb", "col": 2, "row": 6, "octave": 5, "isRoot": false, "sustainCells": 1 },
         { "id": "n03", "name": "A", "col": 4, "row": 9, "octave": 5, "isRoot": false, "sustainCells": 1 },
         { "id": "n04", "name": "D", "col": 6, "row": 2, "octave": 6, "isRoot": true, "sustainCells": 3 },
         { "id": "n05", "name": "C#/Db", "col": 10, "row": 1, "octave": 6, "isRoot": false, "sustainCells": 1 },
-        { "id": "n06", "name": "A", "col": 12, "row": 9, "octave": 5, "isRoot": false, "sustainCells": 1 },
+        { "id": "n06", "name": "A", "col": 12, "row": 9, "octave": 5, "isRoot": true, "sustainCells": 1 },
         { "id": "n07", "name": "B", "col": 14, "row": 11, "octave": 5, "isRoot": false, "sustainCells": 1 },
         { "id": "n08", "name": "A", "col": 16, "row": 9, "octave": 5, "isRoot": false, "sustainCells": 3 }
       ],
