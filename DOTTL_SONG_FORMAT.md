@@ -1,6 +1,6 @@
 # Dottl Song Format Specification
 
-**Version:** 2.0 (based on internal schema v4)
+**Version:** 3.0 (based on internal schema v5)
 **File extension:** `.dottl`
 **MIME type:** `application/json` (JSON with `.dottl` extension)
 **Encoding:** UTF-8
@@ -9,7 +9,7 @@
 
 ## Overview
 
-A `.dottl` file is a JSON document that represents a musical composition created in the Dottl ecosystem. It uses a grid-based model where notes are placed at column/row coordinates, with time flowing left-to-right (columns) and pitch arranged vertically (rows mapped to chromatic note names). The format supports multiple instrument layers, sustain/legato connections between notes, and playback metadata.
+A `.dottl` file is a JSON document that represents a musical composition created in the Dottl ecosystem. It uses a grid-based model where notes are placed at column/row coordinates, with time flowing left-to-right (columns) and pitch arranged vertically (rows mapped to chromatic note names). The format supports multiple instrument layers, sustain/legato connections between notes, chord annotations, and playback metadata.
 
 `.dottl` files are designed to be portable across any app in the Dottl ecosystem — grid editors, play-along games, visualizers, educational tools, and more.
 
@@ -19,31 +19,33 @@ A `.dottl` file is a JSON document that represents a musical composition created
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "projectName": "My Song",
   "bpm": 120,
   "divisor": 2,
   "transposition": 0,
   "difficulty": "intermediate",
+  "chords": [...],
   "layers": [...]
 }
 ```
 
 | Field           | Type     | Required | Description |
 |-----------------|----------|----------|-------------|
-| `version`       | `4`      | Yes      | Schema version. Always `4` for this spec. |
+| `version`       | `5`      | Yes      | Schema version. Always `5` for this spec. |
 | `projectName`   | string   | Yes      | Human-readable song name. May be empty. |
 | `bpm`           | number   | Yes      | Tempo in beats per minute. Range: `20–300`. |
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
 | `difficulty`    | `easy \| intermediate \| advanced \| null` | Yes | Difficulty rating for the song. `null` = unrated. |
+| `chords`        | Chord[]  | No       | Chord annotations for display at specific grid columns. See [Chords](#chords). May be empty or omitted. |
 | `layers`        | Layer[]  | Yes      | One or more instrument layers. Must contain at least one layer. |
 
 ---
 
 ## Timing Model
 
-The grid uses a column-based timing system. Each column represents a subdivision of a beat:
+The grid uses a column-based timing system. Each column represents a subdivision of a beat. **Column 0 is beat 1** — the start of the song.
 
 | `divisor` | Columns per beat | Musical value    |
 |-----------|-----------------|------------------|
@@ -59,6 +61,8 @@ time_seconds = column / divisor * (60 / bpm)
 duration_seconds = sustainCells / divisor * (60 / bpm)
 ```
 
+**Bar structure:** 4 beats per bar. Columns per bar = `4 * divisor`. Bar lines appear at columns `0, 4*divisor, 8*divisor, ...`
+
 There is no fixed number of columns — the grid extends as far right as notes are placed. The total duration of a song is determined by the rightmost note (including its sustain).
 
 ---
@@ -72,7 +76,7 @@ Each layer represents an independent instrument track.
   "id": "a1b2c3d4",
   "name": "Piano",
   "color": "#88a7f8",
-  "instrumentCategory": "Piano",
+  "instrumentCategory": "Keys",
   "smplrLibrary": "SplendidGrandPiano",
   "smplrPatch": "Splendid Grand Piano",
   "volume": 70,
@@ -101,12 +105,12 @@ Human-readable categories that describe the general type of instrument. Apps sho
 
 | `instrumentCategory` | Description |
 |----------------------|-------------|
-| `Piano`              | Piano and keyboard instruments (acoustic piano, electric piano, organ, etc.) |
-| `Mallet`             | Pitched percussion — vibraphone, marimba, glockenspiel, etc. |
-| `Strings`            | Bowed/plucked string instruments and string ensembles |
-| `Bass`               | Bass instruments (electric bass, upright bass, synth bass, etc.) |
-| `Drums`              | Drum machines and percussion kits |
-| `Soundfont`          | General MIDI soundfonts — catch-all for instruments not covered above |
+| `Keys`               | Piano, keyboard, and organ instruments (acoustic piano, electric piano, harpsichord, accordion, etc.) |
+| `Guitars`            | Guitars, bass guitars, and plucked string instruments (acoustic guitar, electric guitar, bass, banjo, sitar, harp, etc.) |
+| `Strings`            | Bowed string instruments, string ensembles, and choirs (violin, cello, string ensemble, mellotron strings, choir, etc.) |
+| `Drums`              | Drum machines, percussion kits, and pitched percussion (TR-808, taiko, timpani, steel drums, etc.) |
+| `Horns`              | Woodwind and brass instruments, including synth versions (trumpet, sax, flute, clarinet, trombone, mellotron brass, etc.) |
+| `Other`              | Everything else — mallets (vibraphone, xylophone, marimba), FX, pads, leads, sound effects, and any instrument not covered above |
 
 **Implementation note:** Apps that don't support a given category should fall back gracefully — play the notes with any available instrument rather than failing.
 
@@ -116,13 +120,15 @@ The `smplrLibrary` and `smplrPatch` fields provide specific sound-reproduction h
 
 | `smplrLibrary`       | smplr Constructor    | Typical Category |
 |----------------------|---------------------|------------------|
-| `SplendidGrandPiano` | `SplendidGrandPiano` | Piano           |
-| `ElectricPiano`      | `ElectricPiano`      | Piano           |
-| `Mallet`             | `Mallet`             | Mallet          |
-| `Mellotron`          | `Mellotron`          | Strings         |
-| `Smolken`            | `Smolken`            | Bass            |
+| `SplendidGrandPiano` | `SplendidGrandPiano` | Keys            |
+| `ElectricPiano`      | `ElectricPiano`      | Keys            |
+| `Mallet`             | `Mallet`             | Other           |
+| `Mellotron`          | `Mellotron`          | Strings / Horns |
+| `Smolken`            | `Smolken`            | Guitars         |
 | `DrumMachine`        | `DrumMachine`        | Drums           |
-| `Soundfont`          | `Soundfont`          | Soundfont       |
+| `Soundfont`          | `Soundfont`          | Any             |
+
+Note: Mellotron patches span multiple categories (strings, brass, woodwinds). The `instrumentCategory` determines the UI grouping; `smplrLibrary` determines the audio engine.
 
 ---
 
@@ -138,6 +144,7 @@ A note placed on the grid.
   "row": 7,
   "octave": 4,
   "isRoot": true,
+  "isStartNote": false,
   "sustainCells": 2
 }
 ```
@@ -146,11 +153,30 @@ A note placed on the grid.
 |----------------|----------|----------|-------------|
 | `id`           | string   | Yes      | Unique identifier within the layer. |
 | `name`         | NoteName | Yes      | Chromatic pitch name. See [Note Names](#note-names). |
-| `col`          | number   | Yes      | Horizontal grid position (0-indexed). Represents time. |
+| `col`          | number   | Yes      | Horizontal grid position (0-indexed). Represents time. Column 0 = beat 1. |
 | `row`          | number   | Yes      | Vertical grid position (0-indexed). Represents the row on the visual grid. |
 | `octave`       | number   | Yes      | Musical octave. Range: `0–8`. Octave 4 = middle C octave. |
-| `isRoot`       | boolean  | Yes      | Whether this note is marked as a root note (visual/harmonic hint). |
+| `isRoot`       | boolean  | Yes      | Whether this note is a chord root — a harmonic hint for analysis and display. See [Root Notes vs Start Notes](#root-notes-vs-start-notes). |
+| `isStartNote`  | boolean  | No       | Whether this note is the octave anchor for the layer. See [Root Notes vs Start Notes](#root-notes-vs-start-notes). Defaults to `false` if omitted. |
 | `sustainCells` | number   | Yes      | Duration extension in grid cells beyond the note's initial cell. `0` = single-cell note. |
+
+### Root Notes vs Start Notes
+
+These two boolean flags serve different purposes and should not be confused:
+
+**`isRoot`** (harmonic) — Marks a note as the root of a chord. Multiple notes can be roots (one per chord). Used by apps for:
+- Visual distinction (highlighting chord roots on the grid)
+- Harmonic analysis (inferring chord names, key signatures)
+- Educational display (showing which note is the tonal center)
+
+**`isStartNote`** (structural) — Marks the octave anchor note for a layer. At most one note per layer should have `isStartNote: true`. Used by apps for:
+- Computing octaves of newly placed notes relative to this anchor
+- Establishing the pitch reference point when composing interactively
+- Identifying the "home base" note of the layer
+
+In many songs, the first note placed is both the start note and a chord root — but they are independent concepts. An imported MIDI file may have chord roots but no start note (octaves are already computed). A composition tool may set a start note that isn't a chord root.
+
+**When `isStartNote` is absent or all false:** Apps should compute octaves from neighboring notes rather than prompting for a starting note. This is the expected state for imported files.
 
 ### Note Names
 
@@ -215,57 +241,89 @@ Connects notes for sustain or legato phrasing.
 
 ---
 
+## Chords
+
+Chord annotations specify chord names at specific grid columns for display purposes (e.g., showing "Am" or "Cmaj7" above the grid). Chords are purely informational — they don't affect playback.
+
+```json
+{
+  "col": 0,
+  "name": "Am",
+  "display": "Am"
+}
+```
+
+| Field     | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| `col`     | number | Yes      | Grid column where the chord begins (0-indexed). |
+| `name`    | string | Yes      | Chord name in standard notation (e.g., `"Am"`, `"Cmaj7"`, `"F#dim"`, `"Bb/D"`). |
+| `display` | string | No       | Optional display override. If omitted, apps should display `name`. Useful for simplified notation (e.g., `name: "Cmaj7"`, `display: "C"`). |
+
+**Chord names** should follow standard notation conventions:
+- Root note: `C`, `C#`, `Db`, `D`, etc.
+- Quality: `m` (minor), `maj` (major, often omitted), `dim`, `aug`, `sus2`, `sus4`
+- Extensions: `7`, `maj7`, `9`, `11`, `13`, `add9`, `6`
+- Bass note (slash chords): `/E`, `/Bb`
+
+Examples: `"C"`, `"Am"`, `"F#m7"`, `"Bbmaj7"`, `"Gsus4"`, `"D/F#"`, `"Edim"`
+
+Apps that don't support chord display should ignore this field.
+
+---
+
 ## Versioning & Migration
 
-### Current Version: 4
+### Current Version: 5
 
-This spec describes version 4. Apps should write version 4 files exclusively.
+This spec describes version 5. Apps should write version 5 files exclusively.
+
+### Changes in v5 (from v4)
+
+- **Updated `instrumentCategory` values** to match the app's current categories: `Keys`, `Guitars`, `Strings`, `Drums`, `Horns`, `Other` (replacing `Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`)
+- **Added `isStartNote` field on notes** — optional boolean that marks the octave anchor note for a layer, separating structural purpose from `isRoot` (harmonic)
+- **Added `chords` array** at the top level for chord name annotations at specific grid columns
+- **Clarified `col 0` = beat 1** — the start of the song
 
 ### Changes in v4 (from v3)
 
-- **Renamed `instrumentType` → `instrumentCategory`** with new human-readable values (`Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`) replacing internal identifiers (`keys`, `mallet`, `mellotron`, `smolken`, `drum-machine`, `soundfont`)
-- **Renamed `instrumentName` → `smplrPatch`** to clarify that this is a smplr-specific patch name
-- **Added optional `smplrLibrary` field** to specify the exact smplr constructor for faithful sound reproduction
+- **Renamed `instrumentType` → `instrumentCategory`** with human-readable values
+- **Renamed `instrumentName` → `smplrPatch`**
+- **Added optional `smplrLibrary` field**
 
 ### Reading Older Versions
 
 Apps should support migrating older formats on load:
 
-**v3 → v4:**
-- Map `instrumentType` to `instrumentCategory`:
+**v4 → v5:**
+- Map old v4 category names to v5:
 
-  | v3 `instrumentType` | v4 `instrumentCategory` |
+  | v4 `instrumentCategory` | v5 `instrumentCategory` |
   |---|---|
-  | `keys` | `Piano` |
-  | `splendid-grand-piano` | `Piano` |
-  | `electric-piano` | `Piano` |
-  | `mallet` | `Mallet` |
-  | `mellotron` | `Strings` |
-  | `smolken` | `Bass` |
-  | `drum-machine` | `Drums` |
-  | `soundfont` | `Soundfont` |
+  | `Piano` | `Keys` |
+  | `Mallet` | `Other` |
+  | `Strings` | `Strings` |
+  | `Bass` | `Guitars` |
+  | `Drums` | `Drums` |
+  | `Soundfont` | `Other` |
 
+- `isStartNote` defaults to `false` for all notes (v4 files don't have it)
+- `chords` defaults to `[]` (v4 files don't have it)
+
+**v3 → v4:**
+- Map `instrumentType` to `instrumentCategory`
 - Rename `instrumentName` to `smplrPatch`
-- Derive `smplrLibrary` from v3 fields:
-  - `keys` + `"Splendid Grand Piano"` → `SplendidGrandPiano`
-  - `keys` + any other name → `ElectricPiano`
-  - `mallet` → `Mallet`
-  - `mellotron` → `Mellotron`
-  - `smolken` → `Smolken`
-  - `drum-machine` → `DrumMachine`
-  - `soundfont` → `Soundfont`
+- Derive `smplrLibrary` from v3 fields
 
 **v2 → v3:**
 - Wrap all notes and lines into a single default layer
 - Set `projectName: ""`, `transposition: 0`
-- Use default instrument (`keys` / `Splendid Grand Piano`)
+- Use default instrument
 
 **v1 → v3:**
-- v1 notes had `connectedToId` instead of a separate `lines` array
-- Convert each note with `connectedToId` + `sustainCells > 0` into a SustainLine
+- Convert `connectedToId` on notes to separate `lines` array
 - Then apply v2 → v3 migration
 
-Then apply v3 → v4 migration.
+Then apply v3 → v4 → v5 migration chain.
 
 ### Future Versions
 
@@ -280,7 +338,7 @@ The `version` field allows forward evolution. Apps encountering an unknown versi
 
 A valid `.dottl` file must satisfy:
 
-1. `version` must be `4` (or a recognized legacy version)
+1. `version` must be `5` (or a recognized legacy version)
 2. `bpm` must be a number in `[20, 300]`
 3. `divisor` must be one of `1, 2, 3, 4`
 4. `transposition` must be an integer in `[-12, 12]`
@@ -292,35 +350,41 @@ A valid `.dottl` file must satisfy:
 10. `name` must be one of the 12 valid NoteName values
 11. `octave` must be an integer in `[0, 8]`
 12. `volume` and `reverb` must be numbers in `[0, 100]`
-13. `instrumentCategory` must be one of: `Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`
+13. `instrumentCategory` must be one of: `Keys`, `Guitars`, `Strings`, `Drums`, `Horns`, `Other`
 14. `smplrLibrary`, if present, must be one of: `SplendidGrandPiano`, `ElectricPiano`, `Mallet`, `Mellotron`, `Smolken`, `DrumMachine`, `Soundfont`
+15. At most one note per layer may have `isStartNote: true`
+16. Chord `col` values should be non-negative integers
+17. `col` values in notes must be non-negative integers (col 0 = beat 1)
 
 ---
 
 ## Minimal Example
 
-A single C major chord (C4, E4, G4) at 120 BPM:
+A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "projectName": "C Major Chord",
   "bpm": 120,
   "divisor": 2,
   "transposition": 0,
   "difficulty": "easy",
+  "chords": [
+    { "col": 0, "name": "C" }
+  ],
   "layers": [
     {
       "id": "layer-1",
       "name": "Piano",
       "color": "",
-      "instrumentCategory": "Piano",
+      "instrumentCategory": "Keys",
       "smplrLibrary": "SplendidGrandPiano",
       "smplrPatch": "Splendid Grand Piano",
       "volume": 70,
       "reverb": 20,
       "notes": [
-        { "id": "n1", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "sustainCells": 0 },
+        { "id": "n1", "name": "C", "col": 0, "row": 0, "octave": 4, "isRoot": true, "isStartNote": true, "sustainCells": 0 },
         { "id": "n2", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 0 },
         { "id": "n3", "name": "G", "col": 0, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 0 }
       ],
@@ -337,16 +401,20 @@ A single C major chord (C4, E4, G4) at 120 BPM:
 ### For Consumers (readers)
 
 - Be lenient: ignore unknown top-level or nested fields
-- Support loading all schema versions (v1, v2, v3, v4) via migration
+- Support loading all schema versions (v1, v2, v3, v4, v5) via migration
 - If `smplrPatch` is not recognized, use a sensible default for the `instrumentCategory`
 - If `smplrLibrary` is missing, use `instrumentCategory` to pick an appropriate sound
-- Legacy v3 files will have `instrumentType`/`instrumentName` — migrate to `instrumentCategory`/`smplrPatch`
+- If `isStartNote` is missing on all notes, compute octaves from neighboring notes
+- If `chords` is missing, treat as empty
+- Legacy files will have `instrumentType`/`instrumentName` or old category names — migrate them
 
 ### For Producers (writers)
 
-- Always write `version: 4`
+- Always write `version: 5`
 - Always include all required fields — do not omit fields with default values
 - Include `smplrLibrary` when the sound was produced with smplr (recommended but optional)
+- Set `isStartNote: true` on the octave anchor note when the app uses one; omit or set `false` otherwise
+- Include `chords` when chord annotations are available; omit or set `[]` otherwise
 - Use stable UUIDs for `id` fields (avoid sequential integers that could collide across apps)
 - Sanitize `projectName` for use as a filename: lowercase, replace non-alphanumeric with hyphens, strip leading/trailing hyphens, fall back to `"untitled"`
 
@@ -375,7 +443,7 @@ Apps may store additional data in a top-level `extensions` object. Other apps sh
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "extensions": {
     "com.example.myapp": { ... }
   },

@@ -9,7 +9,7 @@ The `.dottl` file format is a JSON-based format for representing musical composi
 | **File extension** | `.dottl` |
 | **MIME type** | `application/json` |
 | **Encoding** | UTF-8 |
-| **Current version** | 4 |
+| **Current version** | 5 |
 
 ## Format at a Glance
 
@@ -19,6 +19,7 @@ A `.dottl` file contains:
 - **Layers** — independent instrument tracks, each with its own instrument category, volume, reverb, and color
 - **Notes** — placed on a grid with column (time), row (visual position), octave, pitch name, and optional sustain
 - **Sustain lines** — connections between notes for legato/sustain phrasing
+- **Chord annotations** — chord names at specific grid positions for display
 
 ## Specification
 
@@ -30,7 +31,7 @@ The [`examples/`](examples/) directory contains valid `.dottl` files demonstrati
 
 | File | Description |
 |------|-------------|
-| [`c-major-chord.dottl`](examples/c-major-chord.dottl) | Minimal example — a single C major chord |
+| [`c-major-chord.dottl`](examples/c-major-chord.dottl) | Minimal example — a single C major chord with chord annotation |
 | [`twinkle-twinkle.dottl`](examples/twinkle-twinkle.dottl) | Simple melody with sustain, single layer |
 | [`multi-layer-beat.dottl`](examples/multi-layer-beat.dottl) | Multiple layers — drums, bass, and keys |
 | [`legato-phrases.dottl`](examples/legato-phrases.dottl) | Sustain lines connecting notes for legato phrasing |
@@ -39,20 +40,28 @@ The [`examples/`](examples/) directory contains valid `.dottl` files demonstrati
 
 | Category | Description |
 |----------|-------------|
-| `Piano` | Piano and keyboard instruments |
-| `Mallet` | Vibraphone, marimba, etc. |
-| `Strings` | String instruments and ensembles |
-| `Bass` | Bass instruments |
-| `Drums` | Drum machines and percussion kits |
-| `Soundfont` | General MIDI soundfonts |
+| `Keys` | Piano, keyboard, and organ instruments |
+| `Guitars` | Guitars, bass, and plucked string instruments |
+| `Strings` | Bowed strings, ensembles, and choirs |
+| `Drums` | Drum machines and percussion |
+| `Horns` | Woodwind and brass instruments |
+| `Other` | Mallets, FX, pads, and everything else |
 
 ### smplr Integration
 
 For apps using the [smplr](https://github.com/danigb/smplr) audio library, layers include optional `smplrLibrary` and required `smplrPatch` fields for exact sound reproduction. Apps not using smplr can use `instrumentCategory` to pick an appropriate substitute.
 
+## Note Fields
+
+Notes have two distinct boolean flags:
+- **`isRoot`** (harmonic) — marks chord root notes for analysis and display
+- **`isStartNote`** (structural, optional) — marks the octave anchor for interactive composition
+
+See the [full spec](DOTTL_SONG_FORMAT.md#root-notes-vs-start-notes) for details.
+
 ## Timing Model
 
-Columns represent subdivisions of a beat, controlled by the `divisor` field:
+Column 0 = beat 1. Columns represent subdivisions of a beat, controlled by the `divisor` field:
 
 | Divisor | Columns per beat | Musical value |
 |---------|-----------------|---------------|
@@ -65,9 +74,9 @@ Columns represent subdivisions of a beat, controlled by the `divisor` field:
 
 ## Interoperability
 
-**Consumers** should be lenient — ignore unknown fields, support loading v1/v2/v3/v4 files via migration, and use `instrumentCategory` for fallback sound selection.
+**Consumers** should be lenient — ignore unknown fields, support loading v1–v5 files via migration, and use `instrumentCategory` for fallback sound selection.
 
-**Producers** should always write v4, include all required fields, and use stable UUIDs for IDs.
+**Producers** should always write v5, include all required fields, and use stable UUIDs for IDs.
 
 See the [full spec](DOTTL_SONG_FORMAT.md) for migration paths and validation rules.
 

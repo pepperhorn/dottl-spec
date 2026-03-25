@@ -1,10 +1,14 @@
 {
-  "version": 4,
+  "version": 5,
   "projectName": "Multi Layer Beat",
   "bpm": 90,
   "divisor": 4,
   "transposition": 0,
   "difficulty": "intermediate",
+  "chords": [
+    { "col": 0, "name": "Em" },
+    { "col": 12, "name": "G" }
+  ],
   "layers": [
     {
       "id": "a1b2c3d4-drum-layer",
@@ -37,15 +41,15 @@
       "id": "e5f6g7h8-bass-layer",
       "name": "Bass",
       "color": "#81c784",
-      "instrumentCategory": "Bass",
+      "instrumentCategory": "Guitars",
       "smplrLibrary": "Smolken",
       "smplrPatch": "Deep Sub Bass",
       "volume": 70,
       "reverb": 15,
       "notes": [
-        { "id": "b01", "name": "E", "col": 0, "row": 4, "octave": 2, "isRoot": true, "sustainCells": 3 },
+        { "id": "b01", "name": "E", "col": 0, "row": 4, "octave": 2, "isRoot": true, "isStartNote": true, "sustainCells": 3 },
         { "id": "b02", "name": "E", "col": 8, "row": 4, "octave": 2, "isRoot": true, "sustainCells": 1 },
-        { "id": "b03", "name": "G", "col": 12, "row": 7, "octave": 2, "isRoot": false, "sustainCells": 3 }
+        { "id": "b03", "name": "G", "col": 12, "row": 7, "octave": 2, "isRoot": true, "sustainCells": 3 }
       ],
       "lines": []
     },
@@ -53,13 +57,13 @@
       "id": "i9j0k1l2-keys-layer",
       "name": "Keys",
       "color": "#88a7f8",
-      "instrumentCategory": "Piano",
+      "instrumentCategory": "Keys",
       "smplrLibrary": "SplendidGrandPiano",
       "smplrPatch": "Splendid Grand Piano",
       "volume": 55,
       "reverb": 35,
       "notes": [
-        { "id": "k01", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
+        { "id": "k01", "name": "E", "col": 0, "row": 4, "octave": 4, "isRoot": false, "isStartNote": true, "sustainCells": 1 },
         { "id": "k02", "name": "G", "col": 0, "row": 7, "octave": 4, "isRoot": false, "sustainCells": 1 },
         { "id": "k03", "name": "B", "col": 0, "row": 11, "octave": 4, "isRoot": false, "sustainCells": 1 },
         { "id": "k04", "name": "E", "col": 8, "row": 4, "octave": 4, "isRoot": false, "sustainCells": 1 },
