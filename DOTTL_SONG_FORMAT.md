@@ -26,6 +26,8 @@ A `.dottl` file is a JSON document that represents a musical composition created
   "transposition": 0,
   "difficulty": "intermediate",
   "chords": [...],
+  "markers": [...],
+  "sections": [...],
   "layers": [...]
 }
 ```
@@ -39,13 +41,15 @@ A `.dottl` file is a JSON document that represents a musical composition created
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
 | `difficulty`    | `easy \| intermediate \| advanced \| null` | Yes | Difficulty rating for the song. `null` = unrated. |
 | `chords`        | Chord[]  | No       | Chord annotations for display at specific grid columns. See [Chords](#chords). May be empty or omitted. |
+| `markers`       | Marker[] | No       | Repeat and loop markers. See [Markers](#markers). May be empty or omitted. |
+| `sections`      | Section[] | No      | Named song sections. See [Sections](#sections). May be empty or omitted. |
 | `layers`        | Layer[]  | Yes      | One or more instrument layers. Must contain at least one layer. |
 
 ---
 
 ## Timing Model
 
-The grid uses a column-based timing system. Each column represents a subdivision of a beat. **Column 0 is beat 1** — the start of the song.
+The grid uses a column-based timing system. Each column represents a subdivision of a beat. **Column 1 is beat 1** — the start of the song. Column 0 is a regular grid line before the first bar, available for pickup/anacrusis notes.
 
 | `divisor` | Columns per beat | Musical value    |
 |-----------|-----------------|------------------|
@@ -61,7 +65,7 @@ time_seconds = column / divisor * (60 / bpm)
 duration_seconds = sustainCells / divisor * (60 / bpm)
 ```
 
-**Bar structure:** 4 beats per bar. Columns per bar = `4 * divisor`. Bar lines appear at columns `0, 4*divisor, 8*divisor, ...`
+**Bar structure:** 4 beats per bar. Columns per bar = `4 * divisor`. Bar lines (beat 1) appear at columns `1, 1 + 4*divisor, 1 + 8*divisor, ...`
 
 There is no fixed number of columns — the grid extends as far right as notes are placed. The total duration of a song is determined by the rightmost note (including its sustain).
 
@@ -271,6 +275,79 @@ Apps that don't support chord display should ignore this field.
 
 ---
 
+## Markers
+
+Markers define repeat and loop boundaries for playback control. They are placed on beat-1 columns (bar lines).
+
+```json
+{
+  "id": "m1",
+  "type": "repeat-start",
+  "col": 1,
+  "repeatCount": 2
+}
+```
+
+| Field         | Type       | Required | Description |
+|---------------|------------|----------|-------------|
+| `id`          | string     | Yes      | Unique identifier. |
+| `type`        | MarkerType | Yes      | One of: `repeat-start`, `repeat-end`, `loop-start`, `loop-end`. |
+| `col`         | number     | Yes      | Grid column where the marker is placed. Must be a beat-1 column. |
+| `repeatCount` | number     | No       | Only for `repeat-end`. Number of additional times to replay the section (1 = play once extra, 2 = twice extra, 3 = three times extra). Range: `1–3`. Defaults to `1` if omitted. |
+
+### Marker Types
+
+| Type           | Visual                     | Description |
+|----------------|----------------------------|-------------|
+| `repeat-start` | Bright red line, → arrow   | Start of a repeat section. |
+| `repeat-end`   | Bright red line, ← arrow   | End of a repeat section. Paired with the nearest `repeat-start` to its left. |
+| `loop-start`   | Purple dashed line, → arrow | Start of a loop section. |
+| `loop-end`     | Purple dashed line, ← arrow | End of a loop section. |
+
+### Repeat Semantics
+
+A `repeat-start` at column A and `repeat-end` at column B with `repeatCount: N` means: play columns A through B once (normal pass), then replay the same section N additional times (total plays = N + 1).
+
+### Loop Semantics
+
+Loop markers define a section that replays indefinitely until the user stops playback. At most one loop pair per song. Loop start must be at a lower column than loop end.
+
+### Validation Rules for Markers
+
+1. Each `repeat-start` must have a matching `repeat-end` to its right (no nesting)
+2. Each `repeat-end` must have a preceding `repeat-start`
+3. At most one `loop-start` and one `loop-end` per song
+4. `loop-start.col` must be less than `loop-end.col`
+5. All marker `col` values must be beat-1 columns
+
+---
+
+## Sections
+
+Named song sections for display and arrangement purposes. Sections mark the start of a named region (e.g., "Intro", "Verse", "Chorus").
+
+```json
+{
+  "id": "s1",
+  "col": 1,
+  "name": "Verse"
+}
+```
+
+| Field  | Type   | Required | Description |
+|--------|--------|----------|-------------|
+| `id`   | string | Yes      | Unique identifier. |
+| `col`  | number | Yes      | Grid column where the section starts. Must be a beat-1 column. |
+| `name` | string | Yes      | Section name. Common values: `Intro`, `Verse`, `Pre-Chorus`, `Chorus`, `Bridge`, `Outro`, `A`, `B`, `C`. Custom names are allowed. |
+
+A section's range extends from its `col` to the column before the next section's `col` (or to the end of the song if it is the last section).
+
+### Arrangement Export
+
+Apps may support an arrangement feature that reorders and repeats sections. When exporting an arrangement, the output is a standard `.dottl` file with all notes "baked in" — sections are expanded into sequential columns with repeats flattened into actual note data. The exported file has no markers or sections (it is a standalone linear composition).
+
+---
+
 ## Versioning & Migration
 
 ### Current Version: 5
@@ -282,7 +359,9 @@ This spec describes version 5. Apps should write version 5 files exclusively.
 - **Updated `instrumentCategory` values** to match the app's current categories: `Keys`, `Guitars`, `Strings`, `Drums`, `Horns`, `Other` (replacing `Piano`, `Mallet`, `Strings`, `Bass`, `Drums`, `Soundfont`)
 - **Added `isStartNote` field on notes** — optional boolean that marks the octave anchor note for a layer, separating structural purpose from `isRoot` (harmonic)
 - **Added `chords` array** at the top level for chord name annotations at specific grid columns
-- **Clarified `col 0` = beat 1** — the start of the song
+- **Clarified `col 1` = beat 1** — column 0 is a regular grid line before the first bar
+- **Added `markers` array** at the top level for repeat and loop markers
+- **Added `sections` array** at the top level for named song sections
 
 ### Changes in v4 (from v3)
 
@@ -354,7 +433,12 @@ A valid `.dottl` file must satisfy:
 14. `smplrLibrary`, if present, must be one of: `SplendidGrandPiano`, `ElectricPiano`, `Mallet`, `Mellotron`, `Smolken`, `DrumMachine`, `Soundfont`
 15. At most one note per layer may have `isStartNote: true`
 16. Chord `col` values should be non-negative integers
-17. `col` values in notes must be non-negative integers (col 0 = beat 1)
+17. `col` values in notes must be non-negative integers
+18. Marker `col` values must be beat-1 columns (col = 1 + n × colsPerBar)
+19. Marker `type` must be one of: `repeat-start`, `repeat-end`, `loop-start`, `loop-end`
+20. At most one `loop-start` and one `loop-end` per file
+21. Section `col` values must be beat-1 columns
+22. Section `name` must be a non-empty string
 
 ---
 
@@ -406,6 +490,8 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 - If `smplrLibrary` is missing, use `instrumentCategory` to pick an appropriate sound
 - If `isStartNote` is missing on all notes, compute octaves from neighboring notes
 - If `chords` is missing, treat as empty
+- If `markers` is missing, treat as empty (no repeats/loops)
+- If `sections` is missing, treat as empty (no named sections)
 - Legacy files will have `instrumentType`/`instrumentName` or old category names — migrate them
 
 ### For Producers (writers)
@@ -415,6 +501,8 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 - Include `smplrLibrary` when the sound was produced with smplr (recommended but optional)
 - Set `isStartNote: true` on the octave anchor note when the app uses one; omit or set `false` otherwise
 - Include `chords` when chord annotations are available; omit or set `[]` otherwise
+- Include `markers` when repeat/loop markers are present; omit or set `[]` otherwise
+- Include `sections` when named sections are present; omit or set `[]` otherwise
 - Use stable UUIDs for `id` fields (avoid sequential integers that could collide across apps)
 - Sanitize `projectName` for use as a filename: lowercase, replace non-alphanumeric with hyphens, strip leading/trailing hyphens, fall back to `"untitled"`
 
@@ -432,7 +520,6 @@ Example: `"My Cool Song!"` → `my-cool-song.dottl`
 
 The format is intentionally minimal. Future versions or app-specific extensions may add:
 
-- **Sections/markers** — Named regions (intro, verse, chorus) with column ranges
 - **Time signature** — Currently implicit (4/4); could be made explicit
 - **Key signature** — Currently inferred from root notes
 - **Dynamics** — Per-note velocity
