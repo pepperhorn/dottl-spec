@@ -1,8 +1,8 @@
 # Dottl Song Format Specification
 
 **Version:** 3.1 (based on internal schema v5)
-**File extension:** `.dottl`
-**MIME type:** `application/json` (JSON with `.dottl` extension)
+**File extension:** `.dottl` (app-neutral) or `.drumlet` (drumlet-flavored — see [App-Specific File Extensions](#app-specific-file-extensions))
+**MIME type:** `application/dottl+json` (formerly `application/json`; both are accepted)
 **Encoding:** UTF-8
 
 ---
@@ -600,10 +600,22 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 ### File Naming Convention
 
 ```
-{sanitized-project-name}.dottl
+{sanitized-project-name}.dottl     # app-neutral
+{sanitized-project-name}.drumlet   # drumlet-flavored (see below)
 ```
 
 Example: `"My Cool Song!"` → `my-cool-song.dottl`
+
+### App-Specific File Extensions
+
+Apps that write a dottl-spec payload **plus** their own round-trip metadata in the [extensions](#extension-points) block MAY use a custom extension to advertise that fact at the filesystem level. The file is still a valid `.dottl` document — readers can rename `.drumlet` → `.dottl` and load it normally; the extra `extensions.{appname}` block will be ignored by apps that don't recognize it.
+
+| Extension  | Contents | Producer |
+|------------|----------|----------|
+| `.dottl`   | Pure dottl-spec, no `extensions` block (or only foreign extensions) | App-neutral, transcribers, foreign apps |
+| `.drumlet` | dottl-spec + `extensions.drumlet` (round-trippable Drumlet UI state) | [Drumlet](https://drumlet.app/) |
+
+Apps SHOULD accept any of `.dottl`, `.drumlet`, or other `.{app}` variants on import — the file content is the source of truth, not the extension. Apps SHOULD prefer the `.dottl` extension when their export contains no app-specific extensions block.
 
 ---
 
