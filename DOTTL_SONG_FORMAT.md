@@ -1,6 +1,6 @@
 # Dottl Song Format Specification
 
-**Version:** 3.0 (based on internal schema v5)
+**Version:** 3.1 (based on internal schema v5)
 **File extension:** `.dottl`
 **MIME type:** `application/json` (JSON with `.dottl` extension)
 **Encoding:** UTF-8
@@ -25,6 +25,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
   "divisor": 2,
   "transposition": 0,
   "difficulty": "intermediate",
+  "timeSignature": { "numerator": 4, "denominator": "1/4" },
   "chords": [...],
   "markers": [...],
   "sections": [...],
@@ -40,6 +41,7 @@ A `.dottl` file is a JSON document that represents a musical composition created
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
 | `difficulty`    | `easy \| intermediate \| advanced \| null` | Yes | Difficulty rating for the song. `null` = unrated. |
+| `timeSignature` | `{ numerator: number, denominator: string }` | No | Time signature. See [Time Signature](#time-signature). Defaults to `{ "numerator": 4, "denominator": "1/4" }` if omitted. |
 | `chords`        | Chord[]  | No       | Chord annotations for display at specific grid columns. See [Chords](#chords). May be empty or omitted. |
 | `markers`       | Marker[] | No       | Repeat and loop markers. See [Markers](#markers). May be empty or omitted. |
 | `sections`      | Section[] | No      | Named song sections. See [Sections](#sections). May be empty or omitted. |
@@ -65,7 +67,27 @@ time_seconds = column / divisor * (60 / bpm)
 duration_seconds = sustainCells / divisor * (60 / bpm)
 ```
 
-**Bar structure:** 4 beats per bar. Columns per bar = `4 * divisor`. Bar lines (beat 1) appear at columns `1, 1 + 4*divisor, 1 + 8*divisor, ...`
+**Bar structure:** Beats per bar comes from the `timeSignature.numerator` (defaults to `4`). Columns per bar = `numerator * divisor`. Bar lines (beat 1) appear at columns `1, 1 + numerator*divisor, 1 + 2*numerator*divisor, ...`
+
+---
+
+## Time Signature
+
+Optional top-level field describing the song's time signature. When omitted, consumers should default to `{ "numerator": 4, "denominator": "1/4" }` (4/4).
+
+```json
+{
+  "numerator": 7,
+  "denominator": "1/8"
+}
+```
+
+| Field         | Type   | Required | Description |
+|---------------|--------|----------|-------------|
+| `numerator`   | number | Yes      | Beats per bar. Common values: `2, 3, 4, 5, 6, 7, 9, 12`. |
+| `denominator` | string | Yes      | Note value that gets the beat, expressed as a fraction string. Common values: `"1/2"`, `"1/4"`, `"1/8"`, `"1/16"`. |
+
+The time signature is informational for display and bar-line computation. It does not change column-to-time conversion (which is governed by `bpm` and `divisor`).
 
 There is no fixed number of columns — the grid extends as far right as notes are placed. The total duration of a song is determined by the rightmost note (including its sustain).
 
@@ -131,6 +153,7 @@ The `smplrLibrary` and `smplrPatch` fields provide specific sound-reproduction h
 | `Smolken`            | `Smolken`            | Guitars         |
 | `DrumMachine`        | `DrumMachine`        | Drums           |
 | `Soundfont`          | `Soundfont`          | Any             |
+| `Sampler`            | `Sampler`            | Any             |
 
 Note: Mellotron patches span multiple categories (strings, brass, woodwinds). The `instrumentCategory` determines the UI grouping; `smplrLibrary` determines the audio engine.
 
@@ -149,7 +172,10 @@ A note placed on the grid.
   "octave": 4,
   "isRoot": true,
   "isStartNote": false,
-  "sustainCells": 2
+  "sustainCells": 2,
+  "velocity": 96,
+  "subCol": 1,
+  "subCount": 3
 }
 ```
 
@@ -157,12 +183,54 @@ A note placed on the grid.
 |----------------|----------|----------|-------------|
 | `id`           | string   | Yes      | Unique identifier within the layer. |
 | `name`         | NoteName | Yes      | Chromatic pitch name. See [Note Names](#note-names). |
-| `col`          | number   | Yes      | Horizontal grid position (0-indexed). Represents time. Column 0 = beat 1. |
+| `col`          | number   | Yes      | Horizontal grid position. Represents time. **Column 1 = beat 1.** Column 0 is reserved for pickup/anacrusis notes. |
 | `row`          | number   | Yes      | Vertical grid position (0-indexed). Represents the row on the visual grid. |
 | `octave`       | number   | Yes      | Musical octave. Range: `0–8`. Octave 4 = middle C octave. |
 | `isRoot`       | boolean  | Yes      | Whether this note is a chord root — a harmonic hint for analysis and display. See [Root Notes vs Start Notes](#root-notes-vs-start-notes). |
 | `isStartNote`  | boolean  | No       | Whether this note is the octave anchor for the layer. See [Root Notes vs Start Notes](#root-notes-vs-start-notes). Defaults to `false` if omitted. |
 | `sustainCells` | number   | Yes      | Duration extension in grid cells beyond the note's initial cell. `0` = single-cell note. |
+| `velocity`     | number   | No       | Per-note dynamics. Range: `0–127` (MIDI convention). When omitted, consumers should use a sensible default (e.g. `96` ≈ mezzo-forte). See [Velocity](#velocity). |
+| `subCol`       | number   | No       | 0-indexed sub-position within the cell, when the cell contains multiple evenly-spaced hits (stutter, flam, ratamacue, drag). Requires `subCount`. See [Sub-Cell Hits](#sub-cell-hits). |
+| `subCount`     | number   | No       | Total number of evenly-spaced sub-hits in the cell. Required when `subCol` is present. Range: `2–8`. |
+
+### Velocity
+
+`velocity` is an optional per-note dynamics value following MIDI convention:
+
+- `0` — silent (rest equivalent)
+- `1–31` — pianissimo to piano (pp–p)
+- `32–63` — mezzo-piano (mp)
+- `64–95` — mezzo-forte (mf)
+- `96–127` — forte to fortissimo (f–fff)
+
+Apps that don't support per-note velocity should ignore the field and use a uniform default. Apps that support it but read a file without `velocity` should treat all notes as a single default velocity (recommended: `96`).
+
+### Sub-Cell Hits
+
+`subCol` and `subCount` represent multiple evenly-spaced hits **within** a single grid cell — the building block for stutter beats, flams, drags, ratamacues, and similar rudiments that fall between the main grid divisions.
+
+The two fields always travel together: a note with `subCount: N` is the *k*-th of *N* evenly-spaced hits in its cell, where `k = subCol`.
+
+**Sub-cell timing:**
+
+```
+sub_time_seconds = (col - 1 + subCol / subCount) / divisor * (60 / bpm)
+```
+
+A note **without** `subCol`/`subCount` is a single hit landing exactly on the cell boundary (`subCol = 0`, `subCount = 1` implicitly).
+
+**Examples (in a `divisor: 4` / sixteenth grid):**
+
+| Pattern        | Notes in cell                                  |
+|----------------|------------------------------------------------|
+| Single hit     | One note, no `subCol`/`subCount`               |
+| Flam (2-hit)   | Two notes at `subCol: 0, subCount: 2` and `subCol: 1, subCount: 2` |
+| Triplet stutter| Three notes at `subCol: 0\|1\|2, subCount: 3`  |
+| Drag (4-hit)   | Four notes at `subCol: 0\|1\|2\|3, subCount: 4`|
+
+A cell may contain at most one `subCount` value across its sub-hits — mixing different subdivisions of the same cell is undefined behavior.
+
+Apps that don't support sub-cell hits should fall back gracefully: render each sub-hit as a single hit at the parent cell, or pick the first (`subCol: 0`) and ignore the rest.
 
 ### Root Notes vs Start Notes
 
@@ -350,9 +418,21 @@ Apps may support an arrangement feature that reorders and repeats sections. When
 
 ## Versioning & Migration
 
-### Current Version: 5
+### Current Schema Version: 5 (Spec Doc: 3.1)
 
-This spec describes version 5. Apps should write version 5 files exclusively.
+This spec describes schema version 5. Apps should write `version: 5` files exclusively.
+
+The spec doc itself is versioned independently — schema v5 has gone through doc revisions 3.0 → 3.1 as additive optional fields are clarified or added. New optional fields do not require a schema bump; existing readers ignore them safely.
+
+### Changes in spec doc 3.1 (additive, schema stays at v5)
+
+- **Added optional `velocity` on Note** — per-note dynamics, MIDI range `0–127`. Promoted from the Extension Points list into the Note table.
+- **Added optional `subCol` + `subCount` on Note** — sub-cell hits for stutter beats, flams, drags, and similar rudiments. See [Sub-Cell Hits](#sub-cell-hits).
+- **Added optional `timeSignature` at top level** — explicit time signature. Promoted from Extension Points. Defaults to 4/4 when omitted.
+- **Added `Sampler` to the `smplrLibrary` enum** — for layers driven by user-loaded samples rather than a built-in patch.
+- **Clarified `col 1 = beat 1`** in the Note `col` description (was previously only stated in [Timing Model](#timing-model)).
+
+All 3.1 additions are backward-compatible: schema v5 readers built against doc 3.0 will simply ignore the new optional fields.
 
 ### Changes in v5 (from v4)
 
@@ -430,7 +510,7 @@ A valid `.dottl` file must satisfy:
 11. `octave` must be an integer in `[0, 8]`
 12. `volume` and `reverb` must be numbers in `[0, 100]`
 13. `instrumentCategory` must be one of: `Keys`, `Guitars`, `Strings`, `Drums`, `Horns`, `Other`
-14. `smplrLibrary`, if present, must be one of: `SplendidGrandPiano`, `ElectricPiano`, `Mallet`, `Mellotron`, `Smolken`, `DrumMachine`, `Soundfont`
+14. `smplrLibrary`, if present, must be one of: `SplendidGrandPiano`, `ElectricPiano`, `Mallet`, `Mellotron`, `Smolken`, `DrumMachine`, `Soundfont`, `Sampler`
 15. At most one note per layer may have `isStartNote: true`
 16. Chord `col` values should be non-negative integers
 17. `col` values in notes must be non-negative integers
@@ -439,6 +519,11 @@ A valid `.dottl` file must satisfy:
 20. At most one `loop-start` and one `loop-end` per file
 21. Section `col` values must be beat-1 columns
 22. Section `name` must be a non-empty string
+23. `velocity`, if present, must be an integer in `[0, 127]`
+24. `subCol` and `subCount` must both be present or both absent on a note
+25. When present, `subCount` must be an integer in `[2, 8]` and `subCol` must be an integer in `[0, subCount - 1]`
+26. All sub-hits within the same cell of the same layer must share the same `subCount`
+27. `timeSignature.numerator`, if present, must be a positive integer; `timeSignature.denominator` must be a fraction string of the form `"1/N"` where `N` is a power of 2 in `[1, 64]`
 
 ---
 
@@ -492,6 +577,9 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 - If `chords` is missing, treat as empty
 - If `markers` is missing, treat as empty (no repeats/loops)
 - If `sections` is missing, treat as empty (no named sections)
+- If `timeSignature` is missing, default to 4/4
+- If `velocity` is missing on a note, use a uniform default (recommended: `96`)
+- If `subCol`/`subCount` are missing, treat the note as a single hit at the cell boundary; if present but unsupported, render the sub-hit as a single hit at the parent cell or take only `subCol: 0`
 - Legacy files will have `instrumentType`/`instrumentName` or old category names — migrate them
 
 ### For Producers (writers)
@@ -503,6 +591,9 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 - Include `chords` when chord annotations are available; omit or set `[]` otherwise
 - Include `markers` when repeat/loop markers are present; omit or set `[]` otherwise
 - Include `sections` when named sections are present; omit or set `[]` otherwise
+- Include `timeSignature` when the song is in any meter other than 4/4; omit for 4/4 to keep files compact
+- Include `velocity` on notes when the app supports per-note dynamics; omit for uniform-velocity songs
+- Include `subCol` + `subCount` together when writing sub-cell hits (stutter, flam, drag, etc.); never write one without the other
 - Use stable UUIDs for `id` fields (avoid sequential integers that could collide across apps)
 - Sanitize `projectName` for use as a filename: lowercase, replace non-alphanumeric with hyphens, strip leading/trailing hyphens, fall back to `"untitled"`
 
@@ -520,11 +611,10 @@ Example: `"My Cool Song!"` → `my-cool-song.dottl`
 
 The format is intentionally minimal. Future versions or app-specific extensions may add:
 
-- **Time signature** — Currently implicit (4/4); could be made explicit
 - **Key signature** — Currently inferred from root notes
-- **Dynamics** — Per-note velocity
 - **Metadata** — Author, creation date, tags, license
 - **Grid dimensions** — Explicit row-to-pitch mapping for custom tunings
+- **Microtiming** — Per-note timing offsets independent of the grid (swing/humanize/groove)
 
 Apps may store additional data in a top-level `extensions` object. Other apps should ignore unrecognized extensions:
 
