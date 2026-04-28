@@ -9,17 +9,18 @@ The `.dottl` file format is a JSON-based format for representing musical composi
 | **File extension** | `.dottl` |
 | **MIME type** | `application/json` |
 | **Encoding** | UTF-8 |
-| **Current version** | 5 |
+| **Current version** | 7 |
 
 ## Format at a Glance
 
 A `.dottl` file contains:
 
-- **Song metadata** — name, BPM (20–300), grid subdivision (1–4), transposition (-12 to +12)
+- **Song metadata** — name, BPM (20–300), grid subdivision (1–4), beats per bar (2/3/4/5/6/7/9/11/12/13), transposition (-12 to +12)
 - **Layers** — independent instrument tracks, each with its own instrument category, volume, reverb, and color
-- **Notes** — placed on a grid with column (time), row (visual position), octave, pitch name, and optional sustain
+- **Notes** — placed on a grid with column (time), row (visual position), octave, pitch name, optional sustain, optional per-note `velocity`, and optional sub-cell hits (`subCol`/`subCount`, or the compact `stutter` array)
 - **Sustain lines** — connections between notes for legato/sustain phrasing
 - **Chord annotations** — chord names at specific grid positions for display
+- **Per-bar time-signature changes** (`timeSigChanges`) — non-destructive overrides that shift the active beats-per-bar from a given column onward
 
 ## Specification
 
@@ -74,9 +75,9 @@ Column 0 = beat 1. Columns represent subdivisions of a beat, controlled by the `
 
 ## Interoperability
 
-**Consumers** should be lenient — ignore unknown fields, support loading v1–v5 files via migration, and use `instrumentCategory` for fallback sound selection.
+**Consumers** should be lenient — ignore unknown fields, support loading v1–v7 files via migration, and use `instrumentCategory` for fallback sound selection.
 
-**Producers** should always write v5, include all required fields, and use stable UUIDs for IDs.
+**Producers** should always write v7, include all required fields, and use stable UUIDs for IDs.
 
 See the [full spec](DOTTL_SONG_FORMAT.md) for migration paths and validation rules.
 

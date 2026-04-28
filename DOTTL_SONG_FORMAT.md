@@ -1,6 +1,6 @@
 # Dottl Song Format Specification
 
-**Version:** 3.1 (based on internal schema v5)
+**Version:** 4.0 (based on internal schema v7)
 **File extension:** `.dottl` (app-neutral) or `.drumlet` (drumlet-flavored — see [App-Specific File Extensions](#app-specific-file-extensions))
 **MIME type:** `application/dottl+json` (formerly `application/json`; both are accepted)
 **Encoding:** UTF-8
@@ -19,13 +19,16 @@ A `.dottl` file is a JSON document that represents a musical composition created
 
 ```json
 {
-  "version": 5,
+  "version": 7,
   "projectName": "My Song",
   "bpm": 120,
   "divisor": 2,
+  "beatsPerBar": 4,
   "transposition": 0,
   "difficulty": "intermediate",
-  "timeSignature": { "numerator": 4, "denominator": "1/4" },
+  "timeSigChanges": [
+    { "id": "ts1", "col": 17, "beatsPerBar": 5 }
+  ],
   "chords": [...],
   "markers": [...],
   "sections": [...],
@@ -35,13 +38,15 @@ A `.dottl` file is a JSON document that represents a musical composition created
 
 | Field           | Type     | Required | Description |
 |-----------------|----------|----------|-------------|
-| `version`       | `5`      | Yes      | Schema version. Always `5` for this spec. |
+| `version`       | `7`      | Yes      | Schema version. Always `7` for this spec. |
 | `projectName`   | string   | Yes      | Human-readable song name. May be empty. |
 | `bpm`           | number   | Yes      | Tempo in beats per minute. Range: `20–300`. |
 | `divisor`       | `1 \| 2 \| 3 \| 4` | Yes | Grid subdivision per beat. See [Timing Model](#timing-model). |
+| `beatsPerBar`   | `2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 9 \| 11 \| 12 \| 13` | No | Beats per bar applied from column 1 onward. Defaults to `4` if omitted. See [Beats Per Bar & Time Signature Changes](#beats-per-bar--time-signature-changes). |
 | `transposition` | number   | Yes      | Semitone offset applied at playback. Range: `-12` to `+12`. `0` = no transposition. |
-| `difficulty`    | `easy \| intermediate \| advanced \| null` | Yes | Difficulty rating for the song. `null` = unrated. |
-| `timeSignature` | `{ numerator: number, denominator: string }` | No | Time signature. See [Time Signature](#time-signature). Defaults to `{ "numerator": 4, "denominator": "1/4" }` if omitted. |
+| `difficulty`    | `easy \| intermediate \| advanced \| null` | No | Difficulty rating for the song. `null` = unrated. |
+| `timeSigChanges` | TimeSigChange[] | No | Per-bar time-signature changes that override `beatsPerBar` from a given column onward. See [Beats Per Bar & Time Signature Changes](#beats-per-bar--time-signature-changes). |
+| `timeSignature` | `{ numerator: number, denominator: string }` | No | **Legacy v5 field, deprecated.** Apps SHOULD prefer `beatsPerBar` + `timeSigChanges`. v7 readers MAY ignore `timeSignature` if `beatsPerBar` is present. |
 | `chords`        | Chord[]  | No       | Chord annotations for display at specific grid columns. See [Chords](#chords). May be empty or omitted. |
 | `markers`       | Marker[] | No       | Repeat and loop markers. See [Markers](#markers). May be empty or omitted. |
 | `sections`      | Section[] | No      | Named song sections. See [Sections](#sections). May be empty or omitted. |
@@ -67,27 +72,71 @@ time_seconds = column / divisor * (60 / bpm)
 duration_seconds = sustainCells / divisor * (60 / bpm)
 ```
 
-**Bar structure:** Beats per bar comes from the `timeSignature.numerator` (defaults to `4`). Columns per bar = `numerator * divisor`. Bar lines (beat 1) appear at columns `1, 1 + numerator*divisor, 1 + 2*numerator*divisor, ...`
+**Bar structure:** Beats per bar comes from the top-level `beatsPerBar` (defaults to `4`), optionally overridden mid-song by entries in `timeSigChanges`. Columns per bar at column `c` = `beatsPerBar(c) * divisor`. See [Beats Per Bar & Time Signature Changes](#beats-per-bar--time-signature-changes).
 
 ---
 
-## Time Signature
+## Beats Per Bar & Time Signature Changes
 
-Optional top-level field describing the song's time signature. When omitted, consumers should default to `{ "numerator": 4, "denominator": "1/4" }` (4/4).
+A song's bar structure is described by:
+
+1. A **global** `beatsPerBar` at the top level (defaults to `4`).
+2. An optional list of **per-bar overrides** in `timeSigChanges`, each shifting the active beats-per-bar from a given column onward.
+
+Time changes are **non-destructive to notation**: notes never move when a change is added, edited, or removed. Only the location of bar lines changes.
+
+### Global `beatsPerBar`
+
+```json
+"beatsPerBar": 5
+```
+
+Allowed values: `2, 3, 4, 5, 6, 7, 9, 11, 12, 13`. Other values are reserved for future use.
+
+### `timeSigChange` entries
+
+Each entry overrides `beatsPerBar` from its `col` onward, until either the next change or the end of the song.
 
 ```json
 {
-  "numerator": 7,
-  "denominator": "1/8"
+  "id": "ts1",
+  "col": 17,
+  "beatsPerBar": 7
 }
 ```
 
 | Field         | Type   | Required | Description |
 |---------------|--------|----------|-------------|
-| `numerator`   | number | Yes      | Beats per bar. Common values: `2, 3, 4, 5, 6, 7, 9, 12`. |
-| `denominator` | string | Yes      | Note value that gets the beat, expressed as a fraction string. Common values: `"1/2"`, `"1/4"`, `"1/8"`, `"1/16"`. |
+| `id`          | string | Yes      | Unique identifier within the document. |
+| `col`         | number | Yes      | Beat-1 column where the change takes effect. Must be a valid bar-start under the resolved bar structure that prevails up to this column. |
+| `beatsPerBar` | number | Yes      | New active beats-per-bar from `col` onward. Allowed values: as for global `beatsPerBar`. |
 
-The time signature is informational for display and bar-line computation. It does not change column-to-time conversion (which is governed by `bpm` and `divisor`).
+A change with `col: 1` overrides the global `beatsPerBar` at the song's start.
+
+If a change's column lands strictly inside an in-flight bar (because of an earlier change or the global value), the in-flight bar is **truncated** at the change column and the new bar starts immediately. Notes inside the truncated bar do not move; their visual bar number simply shifts. This matches the "non-destructive to notation" guarantee.
+
+### Recommended barline rendering patterns
+
+Each beats-per-bar value has a conventional barline pattern: a solid bar-1 line plus optional dashed mid-bar markers. Apps MAY render any of these for visual clarity but the structural meaning is the same:
+
+| Beats | Default pattern | Grouping |
+|-------|------|----------|
+| 2  | `red, dashed` | 1+1 |
+| 3  | `red, _, _` | 3 |
+| 4  | `red, _, dashed, _` | 2+2 |
+| 5  | `red, _, dashed, _, _` | 2+3 |
+| 6  | `red, _, dashed, _, _, _` | 2+4 |
+| 7  | `red, _, dashed, _, _, _, _` | 2+5 |
+| 9  | `red, _, dashed, _, _, dashed, _, _, _` | 3+3+3 |
+| 11 | `red, _, _, _, _, dashed, _, _, dashed, _, _` | 4+4+3 |
+| 12 | `red, _, _, dashed, _, _, dashed, _, _, _, _, _` | 4+4+4 |
+| 13 | `red, _, _, _, _, dashed, _, _, _, dashed, _, _, _` | 4+4+3+2 |
+
+(`red` = solid beat-1 line; `dashed` = dashed mid-bar marker; `_` = no overlay.)
+
+### Legacy `timeSignature` (v5/v6)
+
+Files written by older apps may include a top-level `timeSignature: { numerator, denominator }` object. v7 readers SHOULD treat this as informational only, preferring `beatsPerBar` when both are present. v7 writers SHOULD NOT emit `timeSignature`; write `beatsPerBar` instead.
 
 There is no fixed number of columns — the grid extends as far right as notes are placed. The total duration of a song is determined by the rightmost note (including its sustain).
 
@@ -175,7 +224,8 @@ A note placed on the grid.
   "sustainCells": 2,
   "velocity": 96,
   "subCol": 1,
-  "subCount": 3
+  "subCount": 3,
+  "stutter": [4, 0, 7, 2]
 }
 ```
 
@@ -192,6 +242,7 @@ A note placed on the grid.
 | `velocity`     | number   | No       | Per-note dynamics. Range: `0–127` (MIDI convention). When omitted, consumers should use a sensible default (e.g. `96` ≈ mezzo-forte). See [Velocity](#velocity). |
 | `subCol`       | number   | No       | 0-indexed sub-position within the cell, when the cell contains multiple evenly-spaced hits (stutter, flam, ratamacue, drag). Requires `subCount`. See [Sub-Cell Hits](#sub-cell-hits). |
 | `subCount`     | number   | No       | Total number of evenly-spaced sub-hits in the cell. Required when `subCol` is present. Range: `2–8`. |
+| `stutter`      | number[] | No       | Compact stutter shorthand. Length 2/3/4; each entry is a velocity 0–7 (0 = silent sub-hit). See [Stutter (compact form)](#stutter-compact-form). Mutually exclusive with `subCol`/`subCount` on the same note. |
 
 ### Velocity
 
@@ -231,6 +282,36 @@ A note **without** `subCol`/`subCount` is a single hit landing exactly on the ce
 A cell may contain at most one `subCount` value across its sub-hits — mixing different subdivisions of the same cell is undefined behavior.
 
 Apps that don't support sub-cell hits should fall back gracefully: render each sub-hit as a single hit at the parent cell, or pick the first (`subCol: 0`) and ignore the rest.
+
+### Stutter (compact form)
+
+`stutter` is an optional **compact** alternative to `subCol` + `subCount` for representing N evenly-spaced sub-hits in a single cell, where each sub-hit has the same pitch as the parent note. Useful for trap-style stutter patterns (Drumlet, dottl) where the most common case is "this drum hits N times within the cell, each with a velocity."
+
+```json
+"stutter": [4, 0, 7, 2]
+```
+
+- **Length** is `2`, `3`, or `4` — wider stutters fall back to the verbose `subCol`/`subCount` form.
+- **Each entry** is a per-sub-hit velocity in the compact `0–7` scale:
+  - `0` → silent sub-hit (renders as a faint outline, no audio)
+  - `1` → softest audible
+  - `7` → loudest
+- The compact velocity scale maps to MIDI velocity by `midiVel = round(16 + (vel / 7) * 111)` — so `1 → 32`, `7 → 127`.
+
+**Mutual exclusion:** A single note MUST NOT carry both `stutter` and `subCol`/`subCount`. Apps that need different pitches per sub-hit, or more than 4 sub-hits, should use the verbose `subCol`/`subCount` form (one Note object per sub-hit).
+
+**Equivalence:** `stutter: [v0, v1, v2, v3]` on a note with `name: "C", col: 5, octave: 4` is equivalent to four notes:
+
+```json
+{ "name": "C", "col": 5, "octave": 4, "subCol": 0, "subCount": 4, "velocity": midi(v0) }
+{ "name": "C", "col": 5, "octave": 4, "subCol": 1, "subCount": 4, "velocity": midi(v1) }
+{ "name": "C", "col": 5, "octave": 4, "subCol": 2, "subCount": 4, "velocity": midi(v2) }
+{ "name": "C", "col": 5, "octave": 4, "subCol": 3, "subCount": 4, "velocity": midi(v3) }
+```
+
+(silent entries — `vN === 0` — produce no audio but participate in visual rendering as faint outline dots.)
+
+Apps that don't support `stutter` SHOULD render the parent note as a single hit, or expand it to `subCol`/`subCount` notes internally on import.
 
 ### Root Notes vs Start Notes
 
@@ -418,21 +499,27 @@ Apps may support an arrangement feature that reorders and repeats sections. When
 
 ## Versioning & Migration
 
-### Current Schema Version: 5 (Spec Doc: 3.1)
+### Current Schema Version: 7 (Spec Doc: 4.0)
 
-This spec describes schema version 5. Apps should write `version: 5` files exclusively.
+This spec describes schema version 7. Apps should write `version: 7` files exclusively.
 
-The spec doc itself is versioned independently — schema v5 has gone through doc revisions 3.0 → 3.1 as additive optional fields are clarified or added. New optional fields do not require a schema bump; existing readers ignore them safely.
+### Changes in v7 (from v6)
 
-### Changes in spec doc 3.1 (additive, schema stays at v5)
+- **Added optional `timeSigChanges` at top level** — per-bar time-signature changes. Each entry shifts the active beats-per-bar from a given column onward without moving any notes. See [Beats Per Bar & Time Signature Changes](#beats-per-bar--time-signature-changes).
+
+### Changes in v6 (from v5)
+
+- **Added `beatsPerBar` at top level** — the song's global beats-per-bar, replacing the legacy `timeSignature` object as the canonical field. Allowed values: `2, 3, 4, 5, 6, 7, 9, 11, 12, 13`. Defaults to `4` when omitted on load.
+- **Deprecated `timeSignature`** — v6 readers SHOULD prefer `beatsPerBar` when both are present. v6 writers SHOULD NOT emit `timeSignature`.
+- **Added optional `stutter` on Note** — compact array form for N (2/3/4) evenly-spaced sub-hits in a cell, each with a 0–7 velocity. See [Stutter (compact form)](#stutter-compact-form). Equivalent to but more compact than `subCol`/`subCount` for the common single-pitch repeated-hit case.
+
+### Changes in spec doc 3.1 (additive, schema stayed at v5)
 
 - **Added optional `velocity` on Note** — per-note dynamics, MIDI range `0–127`. Promoted from the Extension Points list into the Note table.
 - **Added optional `subCol` + `subCount` on Note** — sub-cell hits for stutter beats, flams, drags, and similar rudiments. See [Sub-Cell Hits](#sub-cell-hits).
-- **Added optional `timeSignature` at top level** — explicit time signature. Promoted from Extension Points. Defaults to 4/4 when omitted.
+- **Added optional `timeSignature` at top level** — explicit time signature. Promoted from Extension Points. Defaults to 4/4 when omitted. *(Deprecated in v6.)*
 - **Added `Sampler` to the `smplrLibrary` enum** — for layers driven by user-loaded samples rather than a built-in patch.
 - **Clarified `col 1 = beat 1`** in the Note `col` description (was previously only stated in [Timing Model](#timing-model)).
-
-All 3.1 additions are backward-compatible: schema v5 readers built against doc 3.0 will simply ignore the new optional fields.
 
 ### Changes in v5 (from v4)
 
@@ -452,6 +539,13 @@ All 3.1 additions are backward-compatible: schema v5 readers built against doc 3
 ### Reading Older Versions
 
 Apps should support migrating older formats on load:
+
+**v6 → v7:**
+- `timeSigChanges` defaults to `[]` (v6 files don't have it).
+
+**v5 → v6:**
+- `beatsPerBar` defaults to `4` if `timeSignature` is absent, or to `timeSignature.numerator` if present and the numerator is one of the allowed values (`2, 3, 4, 5, 6, 7, 9, 11, 12, 13`). For unsupported numerators, fall back to `4`.
+- `note.stutter` is absent on v5 notes; leave it undefined.
 
 **v4 → v5:**
 - Map old v4 category names to v5:
@@ -482,7 +576,7 @@ Apps should support migrating older formats on load:
 - Convert `connectedToId` on notes to separate `lines` array
 - Then apply v2 → v3 migration
 
-Then apply v3 → v4 → v5 migration chain.
+Then apply v3 → v4 → v5 → v6 → v7 migration chain.
 
 ### Future Versions
 
@@ -497,12 +591,15 @@ The `version` field allows forward evolution. Apps encountering an unknown versi
 
 A valid `.dottl` file must satisfy:
 
-1. `version` must be `5` (or a recognized legacy version)
+1. `version` must be `7` (or a recognized legacy version: `1`–`6`)
 2. `bpm` must be a number in `[20, 300]`
 3. `divisor` must be one of `1, 2, 3, 4`
 4. `transposition` must be an integer in `[-12, 12]`
-5. `difficulty` must be one of `easy`, `intermediate`, `advanced`, or `null`
+5. `difficulty`, when present, must be one of `easy`, `intermediate`, `advanced`, or `null`
 6. `layers` must be a non-empty array
+7. `beatsPerBar`, when present, must be one of `2, 3, 4, 5, 6, 7, 9, 11, 12, 13`
+8. Each entry in `timeSigChanges`, when present, must have a unique `id`, a `col >= 1`, and a `beatsPerBar` in the same allowed set
+9. `note.stutter`, when present, must be an array of length 2/3/4 of integers in `[0, 7]`, and the same note MUST NOT also carry `subCol` or `subCount`
 7. All `id` fields must be unique within their scope (notes within a layer, lines within a layer, layers within the song)
 8. `fromNoteId` in a SustainLine must reference a valid note `id` in the same layer
 9. `toNoteId` must reference a valid note `id` in the same layer, or be `null`
@@ -533,10 +630,11 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 
 ```json
 {
-  "version": 5,
+  "version": 7,
   "projectName": "C Major Chord",
   "bpm": 120,
   "divisor": 2,
+  "beatsPerBar": 4,
   "transposition": 0,
   "difficulty": "easy",
   "chords": [
@@ -570,30 +668,33 @@ A single C major chord (C4, E4, G4) at 120 BPM with a chord annotation:
 ### For Consumers (readers)
 
 - Be lenient: ignore unknown top-level or nested fields
-- Support loading all schema versions (v1, v2, v3, v4, v5) via migration
+- Support loading all schema versions (v1 through v7) via migration
 - If `smplrPatch` is not recognized, use a sensible default for the `instrumentCategory`
 - If `smplrLibrary` is missing, use `instrumentCategory` to pick an appropriate sound
 - If `isStartNote` is missing on all notes, compute octaves from neighboring notes
 - If `chords` is missing, treat as empty
 - If `markers` is missing, treat as empty (no repeats/loops)
 - If `sections` is missing, treat as empty (no named sections)
-- If `timeSignature` is missing, default to 4/4
+- If `beatsPerBar` is missing, default to `4`. Legacy `timeSignature.numerator` may be promoted into `beatsPerBar` when reading older files.
+- If `timeSigChanges` is missing, treat as empty (uniform `beatsPerBar` for the whole song)
 - If `velocity` is missing on a note, use a uniform default (recommended: `96`)
 - If `subCol`/`subCount` are missing, treat the note as a single hit at the cell boundary; if present but unsupported, render the sub-hit as a single hit at the parent cell or take only `subCol: 0`
+- If `note.stutter` is present but unsupported, render the parent note as a single hit; or expand to `subCol`/`subCount` notes internally
 - Legacy files will have `instrumentType`/`instrumentName` or old category names — migrate them
 
 ### For Producers (writers)
 
-- Always write `version: 5`
+- Always write `version: 7`
 - Always include all required fields — do not omit fields with default values
 - Include `smplrLibrary` when the sound was produced with smplr (recommended but optional)
 - Set `isStartNote: true` on the octave anchor note when the app uses one; omit or set `false` otherwise
 - Include `chords` when chord annotations are available; omit or set `[]` otherwise
 - Include `markers` when repeat/loop markers are present; omit or set `[]` otherwise
 - Include `sections` when named sections are present; omit or set `[]` otherwise
-- Include `timeSignature` when the song is in any meter other than 4/4; omit for 4/4 to keep files compact
+- Always emit `beatsPerBar` at the top level. Omit the deprecated `timeSignature` field unless explicitly producing for a v5-only consumer.
+- Include `timeSigChanges` only when the song actually changes time signature mid-piece; omit or set `[]` otherwise
 - Include `velocity` on notes when the app supports per-note dynamics; omit for uniform-velocity songs
-- Include `subCol` + `subCount` together when writing sub-cell hits (stutter, flam, drag, etc.); never write one without the other
+- Use `note.stutter` for the common case of N (2/3/4) repeated sub-hits at the same pitch with a velocity per hit. Use the verbose `subCol` + `subCount` form for sub-hits that need different pitches, more than 4 hits, or fewer than 2.
 - Use stable UUIDs for `id` fields (avoid sequential integers that could collide across apps)
 - Sanitize `projectName` for use as a filename: lowercase, replace non-alphanumeric with hyphens, strip leading/trailing hyphens, fall back to `"untitled"`
 
@@ -632,7 +733,7 @@ Apps may store additional data in a top-level `extensions` object. Other apps sh
 
 ```json
 {
-  "version": 5,
+  "version": 7,
   "extensions": {
     "com.example.myapp": { ... }
   },
